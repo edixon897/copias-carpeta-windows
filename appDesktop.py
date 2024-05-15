@@ -49,18 +49,34 @@ def request_credentials(ip):
         dominio = domain_entry.get()
         result, handle_or_error = logon_user(usuario, contraseña, dominio)
         if result:
-            messagebox.showinfo("Impersonation", "Impersonation exitosa.")
-            cred_dialog.destroy()
-            return handle_or_error  # Return the handle of the logged on user
+            if check_folder_access("//{}/".format(ip), usuario, dominio):
+                messagebox.showinfo("Impersonation", "Impersonation exitosa.")
+                cred_dialog.destroy()
+                return handle_or_error  # Return the handle of the logged on user
+            else:
+                messagebox.showerror("Acceso denegado", "El usuario no tiene acceso a la carpeta.")
         else:
             messagebox.showerror("Impersonation fallida", handle_or_error)
-            user_entry.delete(0, tk.END)
-            password_entry.delete(0, tk.END)
+
+        # Limpiar campos para nuevo intento
+        user_entry.delete(0, tk.END)
+        password_entry.delete(0, tk.END)
 
     Button(cred_dialog, text="Iniciar sesión", command=try_login).grid(row=3, column=0)
     cred_dialog.transient(root)
     cred_dialog.grab_set()
     cred_dialog.wait_window()
+
+
+def check_folder_access(folder_path, username, domain):
+    # Verificación de acceso a la carpeta
+    try:
+        os.listdir(folder_path)
+        return True
+    except OSError as e:
+        if e.winerror == 1326:  # Código de error específico para credenciales incorrectas
+            return False
+        raise  # Propagar otros errores que no sean de credenciales incorrectas
 
 def ask_replace(file_name):
     global decision_global
@@ -114,13 +130,22 @@ def copiar_carpeta(origenes, destinos, ip_origen, info_var, progreso_var, info_l
                 info_var.set(f"Copiando de {src} a {dst}")
                 progreso_var.set(f"IP {ip_origen} - Progreso: {int(progress)}% - Tiempo restante: {remaining_time} s")
 
-    info_var.set(f"IP {ip_origen} Copia completada exitosamente")
-    progreso_var.set("Proceso completado al 100%")
-    progreso_label.after(5000, progreso_label.destroy)
+    if archivos_copiados == 0:
+        messagebox.showerror("Error de Copia", f"IP {ip_origen} - No fue posible hacer las copias. Por favor, vuelva a intentarlo.")
+        info_var.set("Error: No fue posible realizar las copias. Intente de nuevo.")
+        progreso_var.set(f"IP {ip_origen} - Proceso no completado. Intente de nuevo.")
+        # Programar el borrado de mensajes de error después de 315 segundos
+        info_label.after(315000, lambda: info_var.set(""))
+        progreso_label.after(315000, lambda: progreso_var.set(""))
+    else:
+        info_var.set(f"IP {ip_origen} - Copia completada exitosamente")
+        progreso_var.set("Proceso completado al 100%")
+        progreso_label.after(5000, progreso_label.destroy)
     decision_global = None
 
 def copiar_carpeta_handler(ip_origen, ip_destino):
-    if not os.path.exists(f"//{ip_origen}//compartidos"):
+    recorido = ip_origen.len(0, 30)
+    if not os.path.exists(f"//{ip_origen}//"):
         request_credentials(ip_origen)
 
     config_ip = {
@@ -131,6 +156,10 @@ def copiar_carpeta_handler(ip_origen, ip_destino):
         '192.168.0.15': {
             'destinos': ['C:\\probando copias'],
             'origenes': ['//192.168.0.15\\Empresa']
+        },
+        '192.168.0.8': {
+            'destinos': ['D:\\Copias001'],
+            'origenes': ['//192.168.0.8\\c\\Program Files (x86)\\Anviz']
         }
     }
 

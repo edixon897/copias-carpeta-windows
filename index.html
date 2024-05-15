@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informes de Ventas</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Informes de Ventas</h2>
+
+<table id="tablaVentas">
+  <tr>
+    <th>Fecha de Venta</th>
+    <th>Producto</th>
+    <th>Cantidad</th>
+    <th>Precio</th>
+  </tr>
+</table>
+
+<script>
+    fetch('data.txt')
+    .then(response => response.text())
+    .then(text => {
+        const lines = text.split('\n');
+        const table = document.getElementById('tablaVentas');
+
+        lines.forEach(line => {
+            const columns = line.split('|');
+            const row = document.createElement('tr');
+
+            columns.forEach(column => {
+                const cell = document.createElement('td');
+                cell.textContent = column.trim();
+                row.appendChild(cell);
+            });
+
+            table.appendChild(row);
+        });
+    });
+</script>
+
+</body>
+</html>
