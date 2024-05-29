@@ -9,6 +9,7 @@ import win32security
 import win32con
 import win32api
 
+
 current_user = getpass.getuser()
 decision_global = None  # Global decision for file replace
 
